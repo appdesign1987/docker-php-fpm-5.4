@@ -20,6 +20,8 @@ wget
 ENV PHP_BUILD_DEPS \
 	autoconf2.13 \
 	libgmp-dev \
+	libicu-dev \
+	libicu \ 
 	libjpeg62-turbo-dev \ 
 	libpng-dev \ 
 	libfreetype6-dev \
@@ -152,6 +154,13 @@ COPY data/php/php-${PHP_VERSION}.tar.xz /usr/src/php.tar.xz
 # This file has been manually fixed
 COPY data/php/config.guess.patched /usr/src/config.guess
 
+
+##SOME FIXES
+RUN apt-get update && apt-get install -y --no-install-recommends --no-install-suggests libgmp-dev wget gcc g++ make ca-certificates
+RUN ln -s /usr/include/x86_64-linux-gnu/gmp.h /usr/include/gmp.h
+RUN cd /usr/local/src && wget https://github.com/unicode-org/icu/archive/release-60-3.tar.gz && tar xvzf release-60-3.tar.gz
+RUN cd /usr/local/src/icu-release-60-3/icu4c/source/ && ./runConfigureICU Linux --prefix=/usr/local/icu-60 && make -j4 && make install
+
 ###
 ### Build PHP
 ###
@@ -219,6 +228,7 @@ COPY data/php/config.guess.patched /usr/src/config.guess
 		--with-png-dir=/usr/lib/ \
 		--enable-exif \
 		--with-gmp \
+		--with-icu-dir=/usr/local/icu-60 \
 		--enable-intl \
 		--with-openssl \
 		--with-imap-ssl \
