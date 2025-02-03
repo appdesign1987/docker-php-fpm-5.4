@@ -21,7 +21,6 @@ ENV PHP_BUILD_DEPS \
 	autoconf2.13 \
 	libgmp-dev \
 	libicu-dev \
-	libicu \ 
 	libjpeg62-turbo-dev \ 
 	libpng-dev \ 
 	libfreetype6-dev \
