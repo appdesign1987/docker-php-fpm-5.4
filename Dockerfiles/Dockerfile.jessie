@@ -1,5 +1,5 @@
 FROM debian:jessie-slim
-MAINTAINER "cytopia" <cytopia@everythingcli.org>
+#MAINTAINER "cytopia" <cytopia@everythingcli.org>
 
 
 ENV PHP_VERSION=5.4.45
@@ -16,6 +16,9 @@ ENV PHP_INI_DIR=/usr/local/etc/php
 
 ENV PHP_BUILD_DEPS \
 	autoconf2.13 \
+	libjpeg62-dev \ 
+	libpng-dev \ 
+	libfreetype6-dev \
 	libbison-dev \
 	libcurl4-openssl-dev \
 	libfl-dev \
@@ -206,6 +209,7 @@ RUN set -eux \
 		\
 		--with-curl \
 		--with-openssl \
+		--enable-bcmath \ 
 		--with-readline \
 		--with-recode \
 		--with-zlib \
