@@ -19,6 +19,10 @@ wget
 
 ENV PHP_BUILD_DEPS \
 	autoconf2.13 \
+	#libxml2 \
+	libtidy-dev \
+	libxslt-dev \
+	default-libmysqlclient-dev \
 	libgmp-dev \
 	libicu-dev \
 	libjpeg62-turbo-dev \ 
@@ -29,6 +33,7 @@ ENV PHP_BUILD_DEPS \
 	libcurl4-openssl-dev \
 	libfl-dev \
 	libmhash-dev \
+	libpspell-dev \
 	libmariadb-dev \
 	libpcre3-dev \
 	libreadline6-dev \
@@ -60,12 +65,18 @@ ENV BUILD_TOOLS \
 	flex \
 	g++ \
 	gcc \
-	libc-dev \
+	#g++-4.8 \
+	#gcc-4.8 \
+	libc6-dev \
 	make \
 	patch \
 	pkg-config \
 	re2c \
 	xz-utils
+
+ENV GCC-Build \
+	g++-4.8 \
+	gcc-4.8 
 
 ENV BUILD_TOOLS_32 \
 	g++-multilib \
@@ -80,10 +91,13 @@ ENV RUNTIME_TOOLS \
 ### Fix expiring apt keys
 ###
 RUN set -eux \
-	&& echo 'Acquire::Check-Valid-Until no;' > /etc/apt/apt.conf.d/99no-check-valid-until \
+	&& echo 'Acquire::Check-Valid-Until no;'> /etc/apt/apt.conf.d/99no-check-valid-until \
+	&& echo 'Acquire::AllowInsecureRepositories true;'> /etc/apt/apt.conf.d/98no-check-valid-until \
+	&& echo 'Acquire::AllowDowngradeToInsecureRepositories true;'> /etc/apt/apt.conf.d/97no-check-valid-until \
 	&& { \
 		echo "deb http://deb.debian.org/debian bookworm main"; \
-		#echo "deb [trusted=yes] http://security.debian.org/debian-security bookworm/updates main"; \
+		echo "deb http://archive.debian.org/debian/ jessie main non-free contrib"; \
+		#echo "deb http://security.debian.org/debian-security bookworm/updates main"; \
 		echo "deb http://deb.debian.org/debian bookworm-updates main"; \
 	} > /etc/apt/sources.list
 
@@ -155,7 +169,8 @@ COPY data/php/config.guess.patched /usr/src/config.guess
 
 
 ##SOME FIXES
-RUN apt-get update && apt-get install -y --no-install-recommends --no-install-suggests libgmp-dev wget gcc g++ make ca-certificates
+RUN apt-get update && apt-get install -y --allow-unauthenticated --no-install-recommends --no-install-suggests ${BUILD_TOOLS} \ 
+libgmp-dev wget ca-certificates
 RUN ln -s /usr/include/x86_64-linux-gnu/gmp.h /usr/include/gmp.h
 RUN cd /usr/local/src && wget https://github.com/unicode-org/icu/archive/release-60-3.tar.gz && tar xvzf release-60-3.tar.gz
 RUN cd /usr/local/src/icu-release-60-3/icu4c/source/ && ./runConfigureICU Linux --prefix=/usr/local/icu-60 && make -j4 && make install
@@ -165,15 +180,21 @@ RUN cd /usr/local/src/icu-release-60-3/icu4c/source/ && ./runConfigureICU Linux 
 ###
  RUN set -eux \
 	&& apt-get update \
-	&& apt-get install -y --no-install-recommends --no-install-suggests \
+	&& apt-get install -y --allow-unauthenticated --no-install-recommends --no-install-suggests \
 		${PHP_BUILD_DEPS} \
+		${GCC-Build} \
 		${BUILD_TOOLS} \
 	&& if [ "$(dpkg-architecture --query DEB_HOST_ARCH)" = "i386" ]; then \
 		apt-get install -y --no-install-recommends --no-install-suggests \
 			${BUILD_TOOLS_32}; \
 	fi \
-# Extract PHP
-	&& tar -Jxf /usr/src/php.tar.xz -C "/usr/src/php" --strip-components=1 \
+# Set GCC version
+&& update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.8 50 \
+&& update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.8 50 \
+&& update-alternatives --config gcc \
+&& update-alternatives --config g++ \
+# Extract PHP	
+&& tar -Jxf /usr/src/php.tar.xz -C "/usr/src/php" --strip-components=1 \
 # Patch config.guess
 	&& mv -f /usr/src/config.guess /usr/src/php/config.guess \
 # Remove old tar.xz
@@ -238,6 +259,18 @@ RUN cd /usr/local/src/icu-release-60-3/icu4c/source/ && ./runConfigureICU Linux 
 		--with-pspell \
 		--with-readline \
 		--enable-pcntl \
+		--enable-shmop \
+		--enable-soap \
+		--enable-sockets \
+		--enable-sysvshm \
+		--with-tidy \
+		--enable-wddx \
+		--with-xmlrpc \
+		--with-xsl \
+		--with-zip \
+		--with-zlib \
+		#--no-create \
+		#--no-recursion \
 	&& make -j"$(nproc)" \
 	&& make install \
 # Cleanup
